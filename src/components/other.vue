@@ -32,6 +32,8 @@
 								<i v-else-if="file.type=='.xls'" class="iconfont icon-excel" style="color:#4dff91;"></i>
 								<i v-else-if="file.type=='.zip'" class="iconfont icon-zip" style="color:#51c5ff;"></i>
 								<i v-else-if="file.type=='.txt'" class="iconfont icon-txt" style="color:#97a8be;"></i>
+								<!--未知类型的文件-->
+								<i v-else class="el-icon-more" style="color:#97a8be;"></i>
 								<div class="filename">{{file.name}}</div>
 							</div>
 						</li>
@@ -287,7 +289,7 @@ export default {
 	//点击导航栏（上N级目录）
 	clickHeading(id,index){
 		if(id){
-			this.headFile.splice(index+1,(this.headFile.length-index-1))
+			this.headFile.splice(index+1,(this.headFile.length-index-1));
 			this.fileData=this.findChildMenu(this.headFile,this.allFileData);
 		}else{
 			this.headFile.length=0;
