@@ -15,7 +15,7 @@
 			</div>
 			<div class="file">
 				<div class="heading" >
-					<el-checkbox v-model="checkAll"></el-checkbox>
+					<el-checkbox v-model="checkAll" @change="fileChooseAll()"></el-checkbox>
 					<ul >
 						<li @click="clickHeading()">首页</li>
 						<li v-for="(item, index) in headFile" @click="clickHeading(item.id,index)"><i class="el-icon-arrow-right"></i>{{item.name}}</li>
@@ -27,11 +27,11 @@
 							<div class="fileBlock" :class="{ active: file.checked }">
 								<el-checkbox v-model="file.checked" @change="fileChoose(file)"></el-checkbox>
 								<i v-if="file.type==1" class="el-icon-document" @click="enterFile(file)" style="color:#ffc86f;"></i>
-								<i v-else-if="file.type==2" class="iconfont icon-word"  style="color:#50bfff;"></i>
-								<i v-else-if="file.type==3" class="iconfont icon-ppt"  style="color:#ff9696;"></i>
-								<i v-else-if="file.type==4" class="iconfont icon-excel" style="color:#4dff91;"></i>
-								<i v-else-if="file.type==5" class="iconfont icon-zip" style="color:#51c5ff;"></i>
-								<i v-else-if="file.type==6" class="iconfont icon-txt" style="color:#97a8be;"></i>
+								<i v-else-if="file.type=='.doc'||file.type=='.docx'" class="iconfont icon-word"  style="color:#50bfff;"></i>
+								<i v-else-if="file.type=='.ppt'" class="iconfont icon-ppt"  style="color:#ff9696;"></i>
+								<i v-else-if="file.type=='.xls'" class="iconfont icon-excel" style="color:#4dff91;"></i>
+								<i v-else-if="file.type=='.zip'" class="iconfont icon-zip" style="color:#51c5ff;"></i>
+								<i v-else-if="file.type=='.txt'" class="iconfont icon-txt" style="color:#97a8be;"></i>
 								<div class="filename">{{file.name}}</div>
 							</div>
 						</li>
@@ -39,11 +39,10 @@
 				</div>
 			</div>
 		</el-dialog>
-		<el-dialog title="上传文件" :visible.sync="textTrue" :data="fileData" size="middle"  top="10%" custom-class="customDialog ">
-		</el-dialog>
 	</div>
 </template>
 <script>
+import $ from 'jquery'
 export default {
   name: 'hello',
   data () {
@@ -67,30 +66,38 @@ export default {
 				name:"文件夹1",
 				type:1,
 				id:"1",
-				checked:false
+				checked:false,
+				children:[{
+					name:"文件夹1-1",
+					type:1,
+					id:"1-1",
+					checked:false,
+					children:[]
+					}
+				]
 			},{
 				name:"doc.doc",
-				type:2,
+				type:".doc",
 				id:"2",
 				checked:false
 			},{
 				name:"ppt.ppt",
-				type:3,
+				type:".ppt",
 				id:"3",
 				checked:false
 			},{
 				name:"excel.xls",
-				type:4,
+				type:".xls",
 				id:"4",
 				checked:false
 			},{
 				name:"zip.zip",
-				type:5,
+				type:".zip",
 				id:"5",
 				checked:false
 			},{
 				name:"txt.txt",
-				type:6,
+				type:".txt",
 				id:"6",
 				checked:false
 			}]
@@ -122,37 +129,51 @@ export default {
 				]
 			},{
 				name:"doc.doc",
-				type:2,
+				type:".doc",
 				id:"2",
 				checked:false
 			},{
 				name:"ppt.ppt",
-				type:3,
+				type:".ppt",
 				id:"3",
 				checked:false
 			},{
 				name:"excel.xls",
-				type:4,
+				type:".xls",
 				id:"4",
 				checked:false
 			},{
 				name:"zip.zip",
-				type:5,
+				type:".zip",
 				id:"5",
 				checked:false
 			},{
 				name:"txt.txt",
-				type:6,
+				type:".txt",
 				id:"6",
 				checked:false
 			}]
-		}],
+		}
+		],
 		headFile:[]
     }
   },
   methods:{
   	//选中文件
 	fileChoose(file){
+		
+	},
+	//全选
+	fileChooseAll(){
+		if(this.checkAll){
+			for(var i=0;i<this.fileData.length;++i){
+				this.fileData[i].checked=true;
+			}
+		}else{
+			for(var i=0;i<this.fileData.length;++i){
+				this.fileData[i].checked=false;
+			}
+		}
 		
 	},
 	//修改文件名
@@ -184,10 +205,10 @@ export default {
 				}).then(({
 					value
 				}) => {
-					fileCheck[index].name=value;
-					//修改到this.allFileData
-					
-					
+					var type=this.getFileType(value);
+					this.fileData[fileCheck[0]].type=type;
+					this.fileData[fileCheck[0]].name=value;
+					//提交修改
 				}).catch(() => { //取消输入
 
 				});
@@ -199,6 +220,7 @@ export default {
 		$.each(this.fileData,function(index,val){
 			if(val.checked){
 				that.fileData.splice(index,1);
+				//提交修改
 			}
 		});
 	},
@@ -209,25 +231,37 @@ export default {
 	//新增文件夹
 	addFile(){
 		this.$prompt('请输入文件夹名称', '新增文件夹', {
-				confirmButtonText: '确定',
-				cancelButtonText: '取消',
-				inputValue: ''
-			}).then(({
-				value
-			}) => {
-				let newFile={
-					name:value,
-					type:1,
-					checked:false,
-					children:[]
-				}
-				this.fileData.push(newFile);
-				//添加到this.allFileData
-				
-				
-			}).catch(() => { //取消输入
+			confirmButtonText: '确定',
+			cancelButtonText: '取消',
+			inputValue: ''
+		}).then(({
+			value
+		}) => {
+			var len=this.fileData.length;
+			var id=this.getFileId(len);
+			let newFile={
+				name:value,
+				type:1,
+				checked:false,
+				id:id,
+				children:[]
+			}
+			this.fileData.push(newFile);
+			//提交修改
+			
+		}).catch(() => { //取消输入
 
-			});
+		});
+	},
+	//生成一个个当前层不重复的id
+	getFileId(len){
+		let id=(Math.random()*len)>>0;
+		for(var i=0;i<this.fileData.length;++i){
+			if(this.fileData[i].id==id){
+				this.getFileId(len);
+			}
+		}
+		return id;
 	},
 	//进入文件
 	enterFile(file){
@@ -238,37 +272,42 @@ export default {
 		}
 		this.headFile.push(thishead);
 	},
-	//根据id寻找目录，返回目录及其子集(也可以用headFile找目录，不用递归)
-	findChildMenu(id,layer){
-		for(var i=0;i<layer.length;++i){
-			if(layer[i].id==id){
-				return layer[i].children;
-			}
-			if(layer[i].children){
-				let result= this.findChildMenu(id,layer[i].children);
-				if(result)
-				{
-					return result;
+	//根据headFile寻找目录，返回其子集
+	findChildMenu(headFile,allFileData){
+		var layer=allFileData;
+		for(var i=0;i<headFile.length;i++){
+			for(var j=0;j<layer.length;j++){
+				if(headFile[i].id==layer[j].id){
+					layer=layer[j].children;
 				}
 			}
 		}
+		return layer;
 	},
 	//点击导航栏（上N级目录）
 	clickHeading(id,index){
 		if(id){
-			this.fileData=this.findChildMenu(id,this.allFileData);
 			this.headFile.splice(index+1,(this.headFile.length-index-1))
+			this.fileData=this.findChildMenu(this.headFile,this.allFileData);
 		}else{
 			this.headFile.length=0;
 			this.fileData=this.allFileData;
 		}
 	},
+	//文件类型
+	getFileType(fileName){
+		var indexDot=fileName.lastIndexOf(".");
+		var type=fileName.substr(indexDot);
+		return type;
+	}
   }
 }
 </script>
-<style scoped="">
+<style>
 
-	
+	.el-dialog__body{
+		height:600px;
+	}
 	/*文件夹*/
 	.addFile{
 		font-size: 12px!important;
